@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance System</title>
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="asset/css/index.css">
+<style>
+    .btn-icon {
+        background-color: #065F46;
+        color: white;
+        font-weight: bold;
+        border-radius: 5px;
+        padding: 10px 20px;
+        margin: 10px;
+    }
+
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        height: 100%; 
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.4); 
+        padding-top: 60px; 
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 400px;
+        border-radius: 5px;
+        text-align: center;
+    }
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .modal input[type="password"], .modal button {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+    }
+    .modal button {
+        background-color: #065F46;
+        color: white;
+        font-weight: bold;
+        border: none;
+    }
+</style>
+</head>
+<body>
+    <div id="header">
+        <img src="asset/image/National_population_Commission_logo-Photoroom.png"/>
+        <h1>ICT ATTENDANCE SYSTEM</h1>
+    </div>
+    <div id="container">
+        <input type="text" id="idInput" placeholder="Enter ID Number" maxlength="5" required><br><br>
+        <input type="button" value="Submit Attendance" onclick="captureImage()" style="background-color: #065F46; color: white; font-weight: bold; border-radius: 5px;">
+        <div id="camera" style="display:none;">
+            <video id="video" width="400" height="300" autoplay></video>
+            <canvas id="canvas" width="400" height="300" style="display: none;"></canvas>
+            <input type="button" value="Capture" onclick="capturePhoto()" style="background-color: #065F46; color: white; font-weight: bold; border-radius: 5px;">
+            <img id="photo" alt="Your Photo" style="display: none;">
+        </div>
+    </div>
+    <div class="btn-container">
+        <button onclick="promptAdminPassword()" class="btn-icon2">
+            <span class="glyphicon glyphicon-list-alt"></span>
+            View Attendance
+        </button>
+        
+        <button onclick="register()" class="btn-icon2">
+            <span class="glyphicon glyphicon-pencil"></span>
+            Registration
+        </button>
+    </div>
+
+    <!-- Modal for Password Input -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p>Please enter the admin password:</p>
+            <input type="password" id="adminPassword" placeholder="Admin Password"/>
+            <button onclick="checkPassword()">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        let users = [];
+        let attendanceRecords = [];
+
+        function findUser(id) {
+            return users.find(user => user.id == id);
+        }
+
+        function signIn(id, photoData) {
+            const user = findUser(id);
+            if (user) {
+                if (!user.lastSignIn || !isSameDay(new Date(user.lastSignIn), new Date())) {
+                    user.lastSignIn = new Date();
+                    saveToLocalStorage();
+                    const signInTime = new Date();
+                    attendanceRecords.push({ id: user.id, name: user.name, signInTime: signInTime, photoData: photoData });
+                    saveAttendanceRecordsToLocalStorage();
+                    alert("Attendance submitted successfully!");
+                    resetForm();
+                } else {
+                    alert("You have already signed in today!");
+                }
+            } else {
+                alert("User doesn't exist. Redirecting to registration page.");
+                window.location.href = "registration.html";
+            }
+        }
+
+        function isSameDay(date1, date2) {
+            return date1.getFullYear() === date2.getFullYear() &&
+                   date1.getMonth() === date2.getMonth() &&
+                   date1.getDate() === date2.getDate();
+        }
+
+        function captureImage() {
+            const idInput = document.getElementById("idInput").value;
+            if (idInput.trim() === "") {
+                alert("Please enter ID number.");
+                return;
+            }
+            const user = findUser(idInput);
+            if (user) {
+                if (!user.lastSignIn || !isSameDay(new Date(user.lastSignIn), new Date())) {
+                    const cameraDiv = document.getElementById("camera");
+                    cameraDiv.style.display = "block";
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(function(stream) {
+                            const video = document.getElementById("video");
+                            video.srcObject = stream;
+                        })
+                        .catch(function(err) {
+                            console.error("Error accessing the camera: ", err);
+                        });
+                } else {
+                    alert("You have already signed in today!");
+                }
+            } else {
+                alert("User doesn't exist. Redirecting to registration page.");
+                window.location.href = "registration.html";
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById("video");
+            const canvas = document.getElementById("canvas");
+            const photo = document.getElementById("photo");
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, 400, 300);
+            const imageData = canvas.toDataURL('image/png');
+            photo.src = imageData;
+            photo.style.display = "block";
+            video.style.display = "none";
+            canvas.style.display = "none";
+            signIn(document.getElementById("idInput").value, imageData);
+        }
+
+        function resetForm() {
+            const video = document.getElementById("video");
+            const canvas = document.getElementById("canvas");
+            const photo = document.getElementById("photo");
+
+            document.getElementById("idInput").value = "";
+            document.getElementById("camera").style.display = "none";
+            photo.style.display = "none";
+            video.style.display = "block";
+
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem("users", JSON.stringify(users));
+        }
+
+        function loadFromLocalStorage() {
+            const savedUsers = localStorage.getItem("users");
+            if (savedUsers) {
+                users = JSON.parse(savedUsers);
+            }
+        }
+
+        function saveAttendanceRecordsToLocalStorage() {
+            localStorage.setItem("attendanceRecords", JSON.stringify(attendanceRecords));
+        }
+
+        function loadAttendanceRecordsFromLocalStorage() {
+            const savedRecords = localStorage.getItem("attendanceRecords");
+            if (savedRecords) {
+                attendanceRecords = JSON.parse(savedRecords);
+            }
+        }
+
+        function promptAdminPassword() {
+            document.getElementById('passwordModal').style.display = "block";
+            // Reset the form
+            document.getElementById('adminPassword').value = "";
+        }
+
+        function checkPassword() {
+            const password = document.getElementById('adminPassword').value;
+            if (password.trim() === "") {
+                alert("Please enter the admin password.");
+                return;
+            }
+            if (password === "Admin@12345") {
+                viewAttendance();
+            } else {
+                alert("Incorrect password. Access denied.");
+            }
+            // Reset the form
+            document.getElementById('adminPassword').value = "";
+            document.getElementById('passwordModal').style.display = "none";
+        }
+
+        function viewAttendance() {
+            window.location.href = "attendance_records.html";
+        }
+
+        function register() {
+            window.location.href = "registration.html";
+        }
+
+        window.onload = function() {
+            loadFromLocalStorage();
+            loadAttendanceRecordsFromLocalStorage();
+        };
+
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('passwordModal').style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('passwordModal')) {
+                document.getElementById('passwordModal').style.display = "none";
+            }
+        }
+    </script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</body>
+</html>

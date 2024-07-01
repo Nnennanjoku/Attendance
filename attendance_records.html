@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Records</title>
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+<!-- Glyphicons icons -->
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="asset/css/record.css">
+</head>
+<body>
+    <div id="header">
+        <img src="asset/image/National_population_Commission_logo-Photoroom.png"/>
+        <h1>ICT ATTENDANCE SYSTEM</h1>
+    </div>
+
+<div class="btn-container">
+    <button onclick="takeAttendance()" class="btn-icon" style="color: #065F46;">
+        <span class="glyphicon glyphicon-pencil"></span> Take Attendance
+    </button>
+    <button id="exportButton" onclick="exportToCSV()" class="btn-icon" style="display: none; color: #065F46;">
+        <span class="glyphicon glyphicon-save-file"></span> Export to CSV
+    </button>
+</div>
+<table id="attendanceData">
+    <tr>
+        <th>S/N</th>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Division</th>
+        <th>Unit</th>
+        <th>Sign In Time</th>
+        <th>Photo</th>
+    </tr>
+</table>
+
+<script>
+    let attendanceRecords = [];
+
+    function loadAttendanceRecords() {
+        const savedRecords = localStorage.getItem("attendanceRecords");
+        if (savedRecords) {
+            attendanceRecords = JSON.parse(savedRecords);
+            // Sort the attendance records in descending order
+            attendanceRecords.sort((a, b) => new Date(b.signInTime) - new Date(a.signInTime));
+            populateTable();
+        } else {
+            alert("No attendance records found.");
+        }
+    }
+
+    function populateTable() {
+        const table = document.getElementById("attendanceData");
+        let serialNumber = 1; // Auto-incrementing serial number
+        attendanceRecords.forEach(record => {
+            const user = findUser(record.id); // Find user by ID
+            const row = table.insertRow();
+            row.insertCell().textContent = serialNumber++; // Incrementing serial number
+            row.insertCell().textContent = record.id;
+            row.insertCell().textContent = user ? `${user.firstName} ${user.lastName}` : ""; // Display full name if user exists
+            row.insertCell().textContent = user ? user.email : ""; // Display email if user exists
+            row.insertCell().textContent = user ? user.phone : ""; // Display phone if user exists
+            row.insertCell().textContent = user ? user.division : ""; // Display division if user exists
+            row.insertCell().textContent = user ? user.unit : ""; // Display unit if user exists
+            row.insertCell().textContent = new Date(record.signInTime).toLocaleString();
+            const photoCell = row.insertCell();
+            const img = document.createElement("img");
+            img.src = record.photoData;
+            photoCell.appendChild(img);
+        });
+    }
+
+    // Function to find user by ID
+    function findUser(id) {
+        const users = JSON.parse(localStorage.getItem("users")) || [];
+        return users.find(user => user.id == id);
+    }
+
+    function takeAttendance() {
+        // Redirect to attendance records page
+        window.location.href = "index.html";
+    }
+
+    function exportToCSV() {
+        const csvContent = convertToCSV(attendanceRecords);
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'attendance_records.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    function convertToCSV(data) {
+        const rows = [];
+        const header = ['S/N', 'ID', 'Name', 'Email', 'Phone', 'Division', 'Unit', 'Sign In Time'];
+        rows.push(header.join(','));
+
+        let serialNumber = 1;
+        data.forEach(record => {
+            const user = findUser(record.id);
+            const fullName = user ? `${user.firstName} ${user.lastName}` : "";
+            const signInTime = new Date(record.signInTime).toLocaleString();
+            const row = [
+                serialNumber++,
+                record.id,
+                fullName,
+                user ? user.email : "",
+                user ? user.phone : "",
+                user ? user.division : "",
+                user ? user.unit : "",
+                `"${signInTime}"`
+            ];
+            rows.push(row.join(','));
+        });
+
+        return rows.join('\n');
+    }
+
+    window.onload = function() {
+        loadAttendanceRecords();
+        const exportButton = document.getElementById('exportButton');
+        if (attendanceRecords.length === 0) {
+            exportButton.style.display = 'none';
+        } else {
+            exportButton.style.display = 'block';
+        }
+    };
+</script>
+
+</body>
+</html>

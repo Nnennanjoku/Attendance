@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Registration</title>
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+<!-- Glyphicons icons -->
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="asset/css/style.css">
+</head>
+<body>
+    <div id="header">
+        <img src="asset/image/National_population_Commission_logo-Photoroom.png"/>
+        <h1>ICT ATTENDANCE SYSTEM</h1>
+    </div>
+    <div id="container">
+        <!-- Close button inside the form -->
+        <span id="closeBtn" onclick="redirectToIndex()">
+            <span class="glyphicon glyphicon-remove-circle"></span>
+        </span>
+        <!-- End of close button -->
+        <h2 style="color: #065F46; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">User Registration</h2>
+        <form id="registrationForm">
+            <input type="text" id="userId" placeholder="Enter ID Number" minlength="4" maxlength="5">
+            <span id="userIdError" style="color: red;"></span>
+            <input type="text" id="userFirstName" placeholder="Enter Your First Name">
+            <input type="text" id="userLastName" placeholder="Enter Your Last Name">
+            <input type="email" id="userEmail" placeholder="Enter Your Email">
+            <span id="emailError" style="color: red;"></span>
+            <input type="tel" id="userPhone" placeholder="Enter Your Phone Number" maxlength="11">
+            <span id="phoneError" style="color: red;"></span>
+            <select id="userDivision">
+                <option value="" disabled selected>Select Your Division</option>
+                <option value="Operations">Operations</option>
+                <option value="Database">Database</option>
+                <option value="Systems">Systems</option>
+                <option value="Network">Network</option>
+            </select><br>
+            
+            <select id="userUnit" style="width: calc(100% - 20px); margin-bottom: 10px; padding: 8px; box-sizing: border-box;">
+                <option value="" disabled selected>Select Your Unit</option>
+            </select><br>
+            
+            <script>
+                // Define units for each division
+                const units = {
+                    Operations: ["Analysis", "Training and Capacity Building", "Asset Management"],
+                    Database: ["Development", "Administration"],
+                    Systems: ["Software Development","System Design","Website"],
+                    Network: ["Maintenance","Communication","Cyber Security","Networking"] 
+                };
+            
+                // Function to populate unit dropdown based on selected division
+                function populateUnits() {
+                    const division = document.getElementById("userDivision").value;
+                    const unitDropdown = document.getElementById("userUnit");
+            
+                    // Clear existing options
+                    unitDropdown.innerHTML = '<option value="" disabled selected>Select Your Unit</option>';
+            
+                    // Populate options based on selected division
+                    units[division].forEach(unit => {
+                        const option = document.createElement("option");
+                        option.value = unit;
+                        option.textContent = unit;
+                        unitDropdown.appendChild(option);
+                    });
+                }
+            
+                // Event listener to call populateUnits when division selection changes
+                document.getElementById("userDivision").addEventListener("change", populateUnits);
+            
+                // Initial population of units dropdown
+                populateUnits();
+            </script>
+            
+            <input type="button" value="Register" onclick="registerUser()" style="background-color: #065F46; color: white; font-weight: bold;border-radius: 5px;">
+        </form>
+    </div>
+
+    <script>
+        let users = [];
+
+        function registerUser() {
+            const userId = document.getElementById("userId").value;
+            const userFirstName = document.getElementById("userFirstName").value;
+            const userLastName = document.getElementById("userLastName").value;
+            const userEmail = document.getElementById("userEmail").value;
+            const userPhone = document.getElementById("userPhone").value;
+            const userDivision = document.getElementById("userDivision").value;
+            const userUnit = document.getElementById("userUnit").value;
+
+            // Reset previous error messages
+            document.getElementById("userIdError").innerText = "";
+            document.getElementById("emailError").innerText = "";
+            document.getElementById("phoneError").innerText = "";
+
+            // Check if user ID is less than 4 characters
+            if (userId.length < 4) {
+                document.getElementById("userIdError").innerText = "User ID must be at least 4 characters long.";
+                return;
+            }
+
+             if (!userId || !userFirstName || !userLastName || !validateEmail(userEmail) || !validatePhone(userPhone) || !userDivision || !userUnit) {
+                alert("Please fill in all fields with valid data.");
+                return;
+            }
+
+            const existingUser = users.find(user => user.id === userId);
+            if (existingUser) {
+                alert("User with this ID already exists.");
+                return;
+            }
+
+            users.push({ 
+                id: userId, 
+                firstName: userFirstName,
+                lastName: userLastName,
+                email: userEmail, 
+                phone: userPhone, 
+                division: userDivision, 
+                unit: userUnit 
+            });
+            saveToLocalStorage();
+            alert("User registered successfully!");
+            resetForm();
+            redirectToIndex();
+        }
+
+        // Function to validate email address
+        function validateEmail(email) {
+            const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!re.test(email)) {
+                document.getElementById("emailError").innerText = "Enter a valid email address";
+                return false;
+            }
+            return true;
+        }
+
+        // Function to validate phone number
+        function validatePhone(phone) {
+            const phoneRegex = /^\d{11}$/; 
+            if (!phoneRegex.test(phone)) {
+                document.getElementById("phoneError").innerText = "Phone number must be 11 digits long";
+                return false;
+            }
+            return true;
+        }
+
+        function resetForm() {
+            document.getElementById("userId").value = "";
+            document.getElementById("userFirstName").value = "";
+            document.getElementById("userLastName").value = "";
+            document.getElementById("userEmail").value = "";
+            document.getElementById("userPhone").value = "";
+            document.getElementById("userDivision").value = "";
+            document.getElementById("userUnit").value = "";
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem("users", JSON.stringify(users));
+        }
+
+        function redirectToIndex() {
+            window.location.href = "index.html";
+        }
+
+        function loadFromLocalStorage() {
+            const savedUsers = localStorage.getItem("users");
+            if (savedUsers) {
+                users = JSON.parse(savedUsers);
+            }
+        }
+        window.onload = loadFromLocalStorage;
+    </script>
+</body>
+</html>
